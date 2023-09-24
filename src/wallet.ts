@@ -66,7 +66,7 @@ for (const record of records) {
 				month: "long",
 				year: "numeric",
 			}),
-			record.amount / 100,
+			record.amount / 100 * (record.type === 0 ? 1 : -1),
 			'"' + [category ? category.name : "", record.note].filter(Boolean).join(" | ") + '"',
 		].join(","),
 	)
