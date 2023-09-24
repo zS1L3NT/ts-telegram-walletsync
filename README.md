@@ -1,10 +1,10 @@
-# Wallet DBS Sync
+# Wallet Sync
 
 ![License](https://img.shields.io/github/license/zS1L3NT/ts-wallet-dbs-sync?style=for-the-badge) ![Languages](https://img.shields.io/github/languages/count/zS1L3NT/ts-wallet-dbs-sync?style=for-the-badge) ![Top Language](https://img.shields.io/github/languages/top/zS1L3NT/ts-wallet-dbs-sync?style=for-the-badge) ![Commit Activity](https://img.shields.io/github/commit-activity/y/zS1L3NT/ts-wallet-dbs-sync?style=for-the-badge) ![Last commit](https://img.shields.io/github/last-commit/zS1L3NT/ts-wallet-dbs-sync?style=for-the-badge)
 
-A script to help me sync my Wallet App transactions with my DBS bank account. What it does is that it takes in a CSV file filled with my exported DBS transactions, then cleans it and stores it as another CSV file. It also will use the Wallet App internal API to fetch all records and store it as a CSV file in a similar format as the DBS CSV file. This way I can more easily compare the transactions between both accounts, and make the necessary adjustments to my Wallet App transactions.
+This is script to help me sync my Wallet App transactions with my DBS bank account's transactions. Wallet App is by BudgetBakers and DBS is by DBS Bank Ltd. This script is not affiliated with either of them.
 
-Wallet App is by BudgetBakers and DBS is by DBS Bank Ltd. This script is not affiliated with either of them.
+What this does is that it takes in a CSV file filled with my exported DBS transactions, then cleans it and stores it as another CSV file. It also will use the Wallet App internal API to fetch all records and store it as a CSV file in a similar format as the DBS CSV file. This way I can more easily compare the transactions between both accounts, and make the necessary adjustments to my Wallet App transactions.
 
 ## Motivation
 
@@ -14,7 +14,7 @@ I wanted to be able to compare my Wallet App transactions with my DBS transactio
 
 -   Wallet App
     -   Fetches transactions from internal API
-	-	Syncs new transactions to a JSON file
+    -   Syncs new transactions to a JSON file
     -   Cleans transactions
 -   DBS
     -   Uses the date in the `client_reference` field instead because it's more reliable

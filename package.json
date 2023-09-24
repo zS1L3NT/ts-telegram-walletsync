@@ -1,6 +1,6 @@
 {
-	"name": "ts-wallet-dbs-sync",
-	"description": "",
+	"name": "ts-wallet-sync",
+	"description": "A script to sync my Wallet transactions with my DBS account",
 	"author": "zS1L3NT <zechariahtan144@gmail.com> (https://www.zectan.com)",
 	"license": "GPL-3.0",
 	"type": "module",
