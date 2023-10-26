@@ -14,27 +14,20 @@ const driver = await new Builder()
 try {
 	await driver.get("https://internet-banking.dbs.com.sg/IB/Welcome")
 
-	// Bot detection
-	if ((await driver.getTitle()) !== "DBS iBanking") {
-		// eslint-disable-next-line no-constant-condition
-		while (true) {
-			await driver.wait(until.elementLocated(By.css(".captcha-code")))
-			const base64 = await driver.findElement(By.css(".captcha-code")).takeScreenshot()
-
-			const ocr = await tesseract.recognize(Buffer.from(base64, "base64"), "eng")
-			console.log("OCR: ", ocr.data.text)
-
-			await driver.sleep(500)
-			await driver.findElement(By.css(".botdetect-input")).sendKeys(ocr.data.text)
-			await driver.findElement(By.css(".botdetect-button")).click()
-
-			await driver.sleep(3000)
-			if ((await driver.getTitle()) === "DBS iBanking") {
-				break
-			}
-
-			await driver.sleep(3000)
+	// eslint-disable-next-line no-constant-condition
+	while (true) {
+		await driver.sleep(3000)
+		if ((await driver.getTitle()) === "DBS iBanking") {
+			break
 		}
+
+		await driver.wait(until.elementLocated(By.css(".captcha-code")))
+		const base64 = await driver.findElement(By.css(".captcha-code")).takeScreenshot()
+		const ocr = await tesseract.recognize(Buffer.from(base64, "base64"), "eng")
+
+		await driver.sleep(500)
+		await driver.findElement(By.css(".botdetect-input")).sendKeys(ocr.data.text)
+		await driver.findElement(By.css(".botdetect-button")).click()
 	}
 
 	// Login page
@@ -78,8 +71,9 @@ try {
 	await driver.executeScript("submitTransactionHistory()")
 
 	// Download
-	await driver.sleep(3000)
+	await driver.sleep(1000)
 	await driver.executeScript("downLoadCASATransaction()")
+	await driver.sleep(3000)
 } finally {
 	await driver.quit()
 }
