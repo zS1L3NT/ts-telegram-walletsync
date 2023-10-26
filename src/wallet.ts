@@ -1,6 +1,17 @@
 import axios from "axios"
-import { writeFileSync } from "fs"
+import { existsSync, writeFileSync } from "fs"
 import { resolve } from "path"
+
+if (!existsSync(resolve("raw/wallet.json"))) {
+	writeFileSync(
+		resolve("raw/wallet.json"),
+		JSON.stringify(
+			{ sequence: 0, account: {}, category: {}, budget: {}, debt: {}, record: {} },
+			null,
+			4,
+		),
+	)
+}
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const wallet = require("../raw/wallet.json") as {
@@ -66,8 +77,12 @@ for (const record of records) {
 				month: "long",
 				year: "numeric",
 			}),
-			record.amount / 100 * (record.type === 0 ? 1 : -1),
-			'"' + [category ? category.name : "", record.note].filter(Boolean).join(" | ") + '"',
+			(record.amount / 100) * (record.type === 0 ? 1 : -1),
+			'"' +
+				[category ? category.name : "", record.note?.replace("\n", " ")]
+					.filter(Boolean)
+					.join(" | ") +
+				'"',
 		].join(","),
 	)
 }
