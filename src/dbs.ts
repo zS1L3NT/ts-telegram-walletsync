@@ -1,7 +1,93 @@
-import { readFileSync, writeFileSync } from "fs"
+import { readdirSync, readFileSync, unlinkSync, writeFileSync } from "fs"
 import { resolve } from "path"
+import { Builder, By, until } from "selenium-webdriver"
+import { Options } from "selenium-webdriver/chrome"
+import tesseract from "tesseract.js"
 
-const dbs = readFileSync(resolve("raw/dbs-raw.csv"), "utf-8")
+const driver = await new Builder()
+	.forBrowser("chrome")
+	.setChromeOptions(
+		new Options().setUserPreferences({ "download.default_directory": resolve("raw") }),
+	)
+	.build()
+
+try {
+	await driver.get("https://internet-banking.dbs.com.sg/IB/Welcome")
+
+	// Bot detection
+	if ((await driver.getTitle()) !== "DBS iBanking") {
+		// eslint-disable-next-line no-constant-condition
+		while (true) {
+			await driver.wait(until.elementLocated(By.css(".captcha-code")))
+			const base64 = await driver.findElement(By.css(".captcha-code")).takeScreenshot()
+
+			const ocr = await tesseract.recognize(Buffer.from(base64, "base64"), "eng")
+			console.log("OCR: ", ocr.data.text)
+
+			await driver.sleep(500)
+			await driver.findElement(By.css(".botdetect-input")).sendKeys(ocr.data.text)
+			await driver.findElement(By.css(".botdetect-button")).click()
+
+			await driver.sleep(3000)
+			if ((await driver.getTitle()) === "DBS iBanking") {
+				break
+			}
+
+			await driver.sleep(3000)
+		}
+	}
+
+	// Login page
+	await driver.wait(until.elementLocated(By.name("UID")))
+	await driver.findElement(By.name("UID")).sendKeys(process.env.DBS__USERNAME)
+	await driver.findElement(By.name("PIN")).sendKeys(process.env.DBS__PASSWORD)
+	await driver.findElement(By.css("[title=Login]")).click()
+
+	// 2FA
+	await driver.wait(until.elementLocated(By.name("user_area")))
+	await driver.switchTo().frame(driver.findElement(By.name("user_area")))
+	await driver.switchTo().frame(driver.findElement(By.id("iframe1")))
+	await driver.wait(until.elementLocated(By.id("AuthenticatBtnId")))
+	await driver.findElement(By.id("AuthenticatBtnId")).click()
+
+	// Go to transaction history page
+	await driver.wait(until.elementLocated(By.id("userBar")))
+	await driver.findElement(By.css("#userBar>:first-child>:first-child")).click()
+
+	// Select account
+	await driver.sleep(1000)
+	await driver.executeScript(
+		[
+			'document.querySelector("#account_number_select>:last-child").selected = true',
+			"onAccountNumberChange()",
+			"selectMCACurrency()",
+		].join("\n"),
+	)
+
+	// Select period
+	await driver.sleep(1000)
+	await driver.executeScript(
+		[
+			'document.querySelector("#selectRange").click()',
+			'document.querySelector("#transactionPeriod>:nth-child(4)").click()',
+		].join("\n"),
+	)
+
+	// Go to page
+	await driver.sleep(1000)
+	await driver.executeScript("submitTransactionHistory()")
+
+	// Download
+	await driver.sleep(3000)
+	await driver.executeScript("downLoadCASATransaction()")
+} finally {
+	await driver.quit()
+}
+
+const filename = readdirSync(resolve("raw")).find(
+	n => n.endsWith(".csv") && !["dbs.csv", "wallet.csv"].includes(n),
+)!
+const dbs = readFileSync(resolve("raw", filename), "utf-8")
 
 const transactions = dbs
 	.split("\n")
@@ -33,3 +119,5 @@ writeFileSync(
 			.sort((a, b) => new Date(b[0]!).getTime() - new Date(a[0]!).getTime())
 			.join("\n"),
 )
+
+unlinkSync(resolve("raw", filename))
