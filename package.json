@@ -5,18 +5,23 @@
 	"license": "GPL-3.0",
 	"type": "module",
 	"scripts": {
+		"start": "bun src/prompt.ts",
 		"wallet": "bun src/wallet.ts",
 		"dbs": "bun src/dbs.ts",
+		"process": "bun src/process.ts",
 		"lint": "tsc --noEmit && eslint src --fix && prettier src --write"
 	},
 	"dependencies": {
 		"axios": "^1.5.0",
 		"selenium-webdriver": "^4.14.0",
-		"tesseract.js": "^5.0.2"
+		"terminal-kit": "^3.0.1",
+		"tesseract.js": "^5.0.2",
+		"timeago.js": "^4.0.2"
 	},
 	"devDependencies": {
 		"@types/node": "latest",
 		"@types/selenium-webdriver": "^4.1.19",
+		"@types/terminal-kit": "^2.5.3",
 		"@typescript-eslint/eslint-plugin": "latest",
 		"@typescript-eslint/parser": "latest",
 		"eslint": "latest",

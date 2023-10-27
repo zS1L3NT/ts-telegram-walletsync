@@ -48,13 +48,13 @@ for (let i = 0; i < 35; i++) {
 	const dbsrm: number[] = []
 	const walrm: number[] = []
 
-	console.log(">>>", date)
+	// console.log(">>>", date)
 
 	// Remove siimilar dbs records that have the same amount
 	for (const walt of walts) {
 		const dbst = dbsts.find(t => t.amount === walt.amount)
 		if (dbst) {
-			console.log("DBS === Wallet", dbst, walt)
+			// console.log("DBS === Wallet", dbst, walt)
 			dbsrm.push(dbsts.indexOf(dbst))
 			walrm.push(walts.indexOf(walt))
 		}
@@ -64,7 +64,7 @@ for (let i = 0; i < 35; i++) {
 	for (const walt of walts) {
 		const revwalt = walts.slice(walts.indexOf(walt) + 1).find(t => t.amount === -walt.amount)
 		if (revwalt) {
-			console.log("Wallet - Wallet = 0", walt, revwalt)
+			// console.log("Wallet - Wallet = 0", walt, revwalt)
 			walrm.push(walts.indexOf(walt))
 			walrm.push(walts.indexOf(revwalt))
 		}
@@ -76,7 +76,7 @@ for (let i = 0; i < 35; i++) {
 			const walt1 = walts[i]!
 			const walt2 = walts[i + 1]!
 			if (walt1.amount + walt2.amount === dbst.amount) {
-				console.log("Wallet + Wallet == DBS", walt1, walt2, dbst)
+				// console.log("Wallet + Wallet == DBS", walt1, walt2, dbst)
 				walrm.push(i)
 				walrm.push(i + 1)
 				dbsrm.push(dbsts.indexOf(dbst))
@@ -84,7 +84,7 @@ for (let i = 0; i < 35; i++) {
 		}
 	}
 
-	console.log("<<<", date, "\n")
+	// console.log("<<<", date, "\n")
 
 	outputs.set(date, [
 		dbsts.filter((_, i) => !dbsrm.includes(i)),
