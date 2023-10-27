@@ -51,29 +51,33 @@ for (let i = 0; i < 35; i++) {
 	const walrm: number[] = []
 
 	// Remove siimilar dbs records that have the same amount
-	for (const walt of walts) {
-		const dbst = dbsts.find(t => t.amount === walt.amount)
+	for (let walti = 0; walti < walts.length; walti++) {
+		const walt = walts[walti]!
+		const dbst = dbsts.find((t, i) => t.amount === walt.amount && !dbsrm.includes(i))
+
 		if (dbst) {
 			const type = "DBS == Wallet"
 			if (!logs[date]) logs[date] = {}
 			if (!logs[date]![type]) logs[date]![type] = []
 			logs[date]![type]!.push([dbst, walt])
 
+			walrm.push(walti)
 			dbsrm.push(dbsts.indexOf(dbst))
-			walrm.push(walts.indexOf(walt))
 		}
 	}
 
 	// Remove wallet debt records that cancel out
-	for (const walt of walts) {
-		const revwalt = walts.slice(walts.indexOf(walt) + 1).find(t => t.amount === -walt.amount)
+	for (let walti = 0; walti < walts.length; walti++) {
+		const walt = walts[walti]!
+		const revwalt = walts.find((t, i) => t.amount === -walt.amount && !walrm.includes(i))
+
 		if (revwalt) {
 			const type = "Wallet - Wallet = 0"
 			if (!logs[date]) logs[date] = {}
 			if (!logs[date]![type]) logs[date]![type] = []
 			logs[date]![type]!.push([walt, revwalt])
 
-			walrm.push(walts.indexOf(walt))
+			walrm.push(walti)
 			walrm.push(walts.indexOf(revwalt))
 		}
 	}
@@ -83,7 +87,13 @@ for (let i = 0; i < 35; i++) {
 		for (let i = 0; i < walts.length - 1; i++) {
 			const walt1 = walts[i]!
 			const walt2 = walts[i + 1]!
-			if (walt1.amount + walt2.amount === dbst.amount) {
+			const dbsti = dbsts.indexOf(dbst)
+			if (
+				walt1.amount + walt2.amount === dbst.amount &&
+				!walrm.includes(i) &&
+				!walrm.includes(i + 1) &&
+				!dbsrm.includes(dbsti)
+			) {
 				const type = "Wallet + Wallet == DBS"
 				if (!logs[date]) logs[date] = {}
 				if (!logs[date]![type]) logs[date]![type] = []
@@ -91,7 +101,7 @@ for (let i = 0; i < 35; i++) {
 
 				walrm.push(i)
 				walrm.push(i + 1)
-				dbsrm.push(dbsts.indexOf(dbst))
+				dbsrm.push(dbsti)
 			}
 		}
 	}
