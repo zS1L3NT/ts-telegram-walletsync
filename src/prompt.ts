@@ -49,6 +49,8 @@ await import("./process")
 
 spawn("open", ["raw/difference.csv"])
 
+terminal.processExit(0)
+
 terminal.grabInput({})
 terminal.on("key", (name: string) => {
 	if (name === "CTRL_C") {
