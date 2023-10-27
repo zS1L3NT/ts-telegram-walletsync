@@ -32,6 +32,8 @@ const wallet = readFileSync(resolve("raw/wallet.csv"), "utf8")
 			}) as Transaction,
 	)
 
+const logs: Record<string, Record<string, Transaction[][]>> = {}
+
 const outputs = new Map<string, [Transaction[], Transaction[]]>()
 
 const today = new Date()
@@ -48,13 +50,15 @@ for (let i = 0; i < 35; i++) {
 	const dbsrm: number[] = []
 	const walrm: number[] = []
 
-	// console.log(">>>", date)
-
 	// Remove siimilar dbs records that have the same amount
 	for (const walt of walts) {
 		const dbst = dbsts.find(t => t.amount === walt.amount)
 		if (dbst) {
-			// console.log("DBS === Wallet", dbst, walt)
+			const type = "DBS == Wallet"
+			if (!logs[date]) logs[date] = {}
+			if (!logs[date]![type]) logs[date]![type] = []
+			logs[date]![type]!.push([dbst, walt])
+
 			dbsrm.push(dbsts.indexOf(dbst))
 			walrm.push(walts.indexOf(walt))
 		}
@@ -64,7 +68,11 @@ for (let i = 0; i < 35; i++) {
 	for (const walt of walts) {
 		const revwalt = walts.slice(walts.indexOf(walt) + 1).find(t => t.amount === -walt.amount)
 		if (revwalt) {
-			// console.log("Wallet - Wallet = 0", walt, revwalt)
+			const type = "Wallet - Wallet = 0"
+			if (!logs[date]) logs[date] = {}
+			if (!logs[date]![type]) logs[date]![type] = []
+			logs[date]![type]!.push([walt, revwalt])
+
 			walrm.push(walts.indexOf(walt))
 			walrm.push(walts.indexOf(revwalt))
 		}
@@ -76,15 +84,17 @@ for (let i = 0; i < 35; i++) {
 			const walt1 = walts[i]!
 			const walt2 = walts[i + 1]!
 			if (walt1.amount + walt2.amount === dbst.amount) {
-				// console.log("Wallet + Wallet == DBS", walt1, walt2, dbst)
+				const type = "Wallet + Wallet == DBS"
+				if (!logs[date]) logs[date] = {}
+				if (!logs[date]![type]) logs[date]![type] = []
+				logs[date]![type]!.push([walt1, walt2, dbst])
+
 				walrm.push(i)
 				walrm.push(i + 1)
 				dbsrm.push(dbsts.indexOf(dbst))
 			}
 		}
 	}
-
-	// console.log("<<<", date, "\n")
 
 	outputs.set(date, [
 		dbsts.filter((_, i) => !dbsrm.includes(i)),
@@ -93,6 +103,8 @@ for (let i = 0; i < 35; i++) {
 }
 
 const entries = [...outputs.entries()]
+
+writeFileSync(resolve("raw/process.json"), JSON.stringify(logs, null, 4))
 
 writeFileSync(
 	resolve("raw/difference.csv"),
