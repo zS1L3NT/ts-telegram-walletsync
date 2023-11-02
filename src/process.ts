@@ -36,9 +36,10 @@ const logs: Record<string, Record<string, Transaction[][]>> = {}
 
 const outputs = new Map<string, [Transaction[], Transaction[]]>()
 
-const today = new Date()
 for (let i = 0; i < 35; i++) {
-	today.setDate(today.getDate() - 1)
+	const today = new Date()
+	today.setDate(today.getDate() - i)
+
 	const date = today.toLocaleDateString("en-SG", {
 		day: "2-digit",
 		month: "long",
