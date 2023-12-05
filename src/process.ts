@@ -83,6 +83,22 @@ for (let i = 0; i < 35; i++) {
 		}
 	}
 
+	// Remove dbs debt records that cancel out
+	for (let dbsti = 0; dbsti < dbsts.length; dbsti++) {
+		const dbst = dbsts[dbsti]!
+		const revdbst = dbsts.find((t, i) => t.amount === -dbst.amount && !dbsrm.includes(i))
+
+		if (revdbst) {
+			const type = "DBS - DBS = 0"
+			if (!logs[date]) logs[date] = {}
+			if (!logs[date]![type]) logs[date]![type] = []
+			logs[date]![type]!.push([dbst, revdbst])
+
+			dbsrm.push(dbsti)
+			dbsrm.push(dbsts.indexOf(revdbst))
+		}
+	}
+
 	// Remove dbs records that amount to two consecutive wallet records
 	for (const dbst of dbsts) {
 		for (let i = 0; i < walts.length - 1; i++) {
@@ -106,6 +122,30 @@ for (let i = 0; i < 35; i++) {
 			}
 		}
 	}
+
+	// Remove wallet records that amount to two consecutive dbs records
+	for (const walt of walts) {
+		for (let i = 0; i < dbsts.length - 1; i++) {
+			const dbst1 = dbsts[i]!
+			const dbst2 = dbsts[i + 1]!
+			const walti = walts.indexOf(walt)
+			if (
+				dbst1.amount + dbst2.amount === walt.amount &&
+				!dbsrm.includes(i) &&
+				!dbsrm.includes(i + 1) &&
+				!walrm.includes(walti)
+			) {
+				const type = "DBS + DBS == Wallet"
+				if (!logs[date]) logs[date] = {}
+				if (!logs[date]![type]) logs[date]![type] = []
+				logs[date]![type]!.push([dbst1, dbst2, walt])
+
+				dbsrm.push(i)
+				dbsrm.push(i + 1)
+				walrm.push(walti)
+			}
+		}
+	}	
 
 	outputs.set(date, [
 		dbsts.filter((_, i) => !dbsrm.includes(i)),
