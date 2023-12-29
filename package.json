@@ -1,6 +1,6 @@
 {
-	"name": "ts-wallet-sync",
-	"description": "A script to sync my Wallet transactions with my DBS account",
+	"name": "ts-telegram-walletsync",
+	"description": "A telegram bot assist me in syncing my Wallet transactions with my DBS account",
 	"author": "zS1L3NT <dev@zectan.com> (https://www.zectan.com)",
 	"license": "GPL-3.0",
 	"type": "module",
