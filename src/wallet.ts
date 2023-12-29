@@ -1,13 +1,20 @@
 import axios from "axios"
+import { writeFile } from "fs/promises"
+import { resolve } from "path"
+
+import { Transaction } from "./@types/types"
 
 export default async () => {
-	const wallet = {
-		sequence: 0,
-		account: {} as Record<string, any>,
-		category: {} as Record<string, any>,
-		budget: {} as Record<string, any>,
-		debt: {} as Record<string, any>,
-		record: {} as Record<string, any>,
+	let sequence = 0
+	const wallet: Record<
+		"account" | "category" | "budget" | "debt" | "record",
+		Record<string, any>
+	> = {
+		account: {},
+		category: {},
+		budget: {},
+		debt: {},
+		record: {},
 	}
 
 	axios.defaults.baseURL = process.env.WALLET__API_URL
@@ -20,9 +27,9 @@ export default async () => {
 	// eslint-disable-next-line no-constant-condition
 	while (true) {
 		const { data: _changes } = await axios.get(
-			`/_changes?style=all_docs&since=${wallet.sequence}&limit=1000`,
+			`/_changes?style=all_docs&since=${sequence}&limit=1000`,
 		)
-		wallet.sequence = _changes.last_seq
+		sequence = _changes.last_seq
 
 		const { data: _all_docs } = await axios.post(
 			`/_all_docs?conflicts=true&include_docs=true`,
@@ -49,31 +56,24 @@ export default async () => {
 
 	const sma = new Date()
 	sma.setMonth(sma.getMonth() - 6)
-	const records = Object.values(wallet.record)
+
+	const transactions = Object.values(wallet.record)
 		.filter(r => r.accountId === accountId)
 		.map(r => ({ ...r, date: new Date(r.recordDate) }))
 		.filter(r => r.date > sma)
 		.sort((a, b) => b.date.getTime() - a.date.getTime())
+		.map<Transaction>(r => {
+			const category = r.categoryId ? wallet.category[r.categoryId] : null
+			return {
+				date: r.date.getTime(),
+				amount: (r.amount / 100) * (r.type === 0 ? 1 : -1),
+				description: [category ? category.name : "", r.note?.replace("\n", " ")]
+					.filter(Boolean)
+					.join(" | "),
+			}
+		})
 
-	const csv = ["Date,Amount,Description"]
-	for (const record of records) {
-		const category = record.categoryId ? wallet.category[record.categoryId] : null
-		csv.push(
-			[
-				record.date.toLocaleDateString("en-SG", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				}),
-				(record.amount / 100) * (record.type === 0 ? 1 : -1),
-				'"' +
-					[category ? category.name : "", record.note?.replace("\n", " ")]
-						.filter(Boolean)
-						.join(" | ") +
-					'"',
-			].join(","),
-		)
-	}
+	await writeFile(resolve("data/wallet.json"), JSON.stringify(transactions))
 
-	return csv.join("\n")
+	return transactions
 }

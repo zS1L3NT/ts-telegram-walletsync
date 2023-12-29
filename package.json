@@ -5,11 +5,8 @@
 	"license": "GPL-3.0",
 	"type": "module",
 	"scripts": {
-		"start": "bun src/prompt.ts",
-		"wallet": "bun src/wallet.ts",
-		"dbs": "bun src/dbs.ts",
-		"process": "bun src/process.ts",
-		"lint": "tsc --noEmit && eslint src --fix && prettier src --write"
+		"start": "bun src/app.ts",
+		"lint": "tsc --noEmit && eslint src --fix && prettier src --write && rm tsconfig.tsbuildinfo"
 	},
 	"dependencies": {
 		"axios": "^1.5.0",

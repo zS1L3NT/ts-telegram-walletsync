@@ -4,4 +4,4 @@
 **/.env
 **/*.test.ts
 **/.vscode
-raw/
+data/

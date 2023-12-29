@@ -1,37 +1,7 @@
-type Transaction = {
-	date: string
-	amount: number
-	description: string
-}
+import { Transaction } from "./@types/types"
 
-export default async (_dbs: string, _wallet: string) => {
-	const dbs = _dbs
-		.split("\n")
-		.slice(1)
-		.map(r => r.match(/([\d\w ]+),(-?\d+(?:\.\d+)?),(.*)/))
-		.map(
-			m =>
-				({
-					date: m![1]!,
-					amount: +m![2]!,
-					description: m![3]!,
-				}) as Transaction,
-		)
-	const wallet = _wallet
-		.split("\n")
-		.slice(1)
-		.map(r => r.match(/([\d\w ]+),(-?\d+(?:\.\d+)?),"(.*)"/))
-		.map(
-			m =>
-				({
-					date: m![1]!,
-					amount: +m![2]!,
-					description: m![3]!,
-				}) as Transaction,
-		)
-
+export default (dbs: Transaction[], wallet: Transaction[]) => {
 	const logs: Record<string, Record<string, Transaction[][]>> = {}
-
 	const outputs = new Map<string, [Transaction[], Transaction[]]>()
 
 	for (let i = 0; i < 35; i++) {
@@ -44,8 +14,15 @@ export default async (_dbs: string, _wallet: string) => {
 			year: "numeric",
 		})
 
-		const dbsts = dbs.filter(r => r.date === date)
-		const walts = wallet.filter(r => r.date === date)
+		const isToday = (t: Transaction) =>
+			new Date(t.date).toLocaleDateString("en-SG", {
+				day: "2-digit",
+				month: "long",
+				year: "numeric",
+			}) === date
+		const dbsts = dbs.filter(isToday)
+		const walts = wallet.filter(isToday)
+
 		const dbsrm: number[] = []
 		const walrm: number[] = []
 
@@ -151,17 +128,22 @@ export default async (_dbs: string, _wallet: string) => {
 		])
 	}
 
-	const entries = [...outputs.entries()]
+	const transactionToText = (t: Transaction) =>
+		`<b>${t.amount < 0 ? "-" : ""}$${Math.abs(t.amount)}</b> (<i>${t.description.replaceAll(
+			/\d{4}-\d{4}-\d{4}-\d{4}/g,
+			"****",
+		)}</i>)`
 
 	return {
-		logs,
-		difference: [
-			"Provider,Date,Amount,Description",
-			...entries.flatMap(([date, [dbsts, walts]]) => [
-				...dbsts.map(t => `DBS,${date},${t.amount},${t.description}`),
-				...walts.map(t => `Wallet,${date},${t.amount},"${t.description}"`),
-				"-,-,-,-",
-			]),
-		].join("\n"),
+		differences: [...outputs.entries()]
+			.filter(([, [dbs, wallet]]) => dbs.length || wallet.length)
+			.map(([date, [dbs, wallet]]) =>
+				[
+					`<b><u>${date}</u></b>`,
+					...dbs.map(t => `DBS: ${transactionToText(t)}`),
+					...wallet.map(t => `Wallet: ${transactionToText(t)}`),
+				].join("\n"),
+			)
+			.join("\n\n"),
 	}
 }

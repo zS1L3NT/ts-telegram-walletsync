@@ -1,15 +1,18 @@
-import { readdirSync, readFileSync, unlinkSync } from "fs"
+import { readdir, readFile, unlink, writeFile } from "fs/promises"
 import { resolve } from "path"
 import { Builder, By, until } from "selenium-webdriver"
 import { Options } from "selenium-webdriver/chrome"
 import tesseract from "tesseract.js"
 
+import { Transaction } from "./@types/types"
+
 export default async () => {
 	const driver = await new Builder()
 		.forBrowser("chrome")
 		.setChromeOptions(
-			new Options().setUserPreferences({ "download.default_directory": "." }),
-			// .addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage"),
+			new Options()
+				.setUserPreferences({ "download.default_directory": resolve("data") })
+				.addArguments("--headless=new", "--no-sandbox", "--disable-dev-shm-usage"),
 		)
 		.build()
 
@@ -80,13 +83,14 @@ export default async () => {
 		await driver.quit()
 	}
 
-	const filename = readdirSync(".").find(n => n.endsWith(".csv"))!
-	const dbs = readFileSync(filename, "utf-8")
+	const filepath = resolve("data", (await readdir("data")).find(n => n.endsWith(".csv"))!)
+	const dbs = await readFile(filepath, "utf-8")
+	await unlink(filepath)
 
 	const transactions = dbs
 		.split("\n")
 		.slice(21, -5)
-		.map(line => {
+		.map<Transaction>(line => {
 			const [stated_date, , , , debit, credit, client_reference, additional_reference] =
 				line.split(",")
 			const real_date = client_reference?.match(/([0-9]{2}[A-Z]{3})/)?.[1]
@@ -97,18 +101,14 @@ export default async () => {
 				  )
 				: new Date(stated_date!)
 
-			return [
-				date.toLocaleDateString("en-SG", {
-					day: "2-digit",
-					month: "long",
-					year: "numeric",
-				}),
-				debit!.trim() ? -parseFloat(debit!) : parseFloat(credit!),
-				[client_reference, additional_reference].filter(Boolean).join(" | "),
-			]
+			return {
+				date: date.getTime(),
+				amount: debit!.trim() ? -parseFloat(debit!) : parseFloat(credit!),
+				description: [client_reference, additional_reference].filter(Boolean).join(" | "),
+			}
 		})
 
-	unlinkSync(resolve("raw", filename))
+	await writeFile(resolve("data/dbs.json"), JSON.stringify(transactions))
 
-	return transactions.join("\n")
+	return transactions
 }
