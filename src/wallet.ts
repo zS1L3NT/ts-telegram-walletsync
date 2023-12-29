@@ -5,6 +5,9 @@ import { resolve } from "path"
 import { Transaction } from "./@types/types"
 
 export default async () => {
+	console.log("Scraping Wallet")
+	console.time("Scraped Wallet")
+
 	let sequence = 0
 	const wallet: Record<
 		"account" | "category" | "budget" | "debt" | "record",
@@ -75,5 +78,6 @@ export default async () => {
 
 	await writeFile(resolve("data/wallet.json"), JSON.stringify(transactions))
 
+	console.timeEnd("Scraped Wallet")
 	return transactions
 }

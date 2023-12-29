@@ -22,19 +22,26 @@ bot.onText(/\/start/, async message => {
 		return
 	}
 
-	const { differences } = process(await dbs(), await wallet())
-	await bot.sendMessage(message.from!.id, differences, {
-		parse_mode: "HTML",
-		reply_markup: {
-			inline_keyboard: [
-				[
-					{ text: "Refresh DBS", callback_data: "dbs" },
-					{ text: "Refresh Wallet", callback_data: "wallet" },
+	try {
+		const { differences } = process(await dbs(), await wallet())
+		await bot.sendMessage(message.from!.id, differences, {
+			parse_mode: "HTML",
+			reply_markup: {
+				inline_keyboard: [
+					[
+						{ text: "Refresh DBS", callback_data: "dbs" },
+						{ text: "Refresh Wallet", callback_data: "wallet" },
+					],
+					[{ text: "Refresh Both", callback_data: "both" }],
 				],
-				[{ text: "Refresh Both", callback_data: "both" }],
-			],
-		},
-	})
+			},
+		})
+	} catch (e) {
+		const error = e as Error
+		bot.sendMessage(message.from!.id, `<b><u>${error.name}</u></b>\n${error.message}`, {
+			parse_mode: "HTML",
+		})
+	}
 })
 
 bot.on("callback_query", async message => {
@@ -58,7 +65,7 @@ bot.on("callback_query", async message => {
 
 	const { differences } = process(dbsdata, waldata)
 
-	if (message.message?.text !== differences) {
+	try {
 		await bot.editMessageText(differences, {
 			chat_id: message.from.id,
 			message_id: message.message?.message_id,
@@ -73,5 +80,12 @@ bot.on("callback_query", async message => {
 				],
 			},
 		})
+	} catch (e) {
+		const error = e as Error
+		if (!error.message.includes("message is not modified")) {
+			bot.sendMessage(message.from.id, `<b><u>${error.name}</u></b>\n${error.message}`, {
+				parse_mode: "HTML",
+			})
+		}
 	}
 })

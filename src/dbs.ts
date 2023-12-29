@@ -7,6 +7,9 @@ import tesseract from "tesseract.js"
 import { Transaction } from "./@types/types"
 
 export default async () => {
+	console.log("Scraping DBS")
+	console.time("Scraped DBS")
+
 	const driver = await new Builder()
 		.forBrowser("chrome")
 		.setChromeOptions(
@@ -110,5 +113,6 @@ export default async () => {
 
 	await writeFile(resolve("data/dbs.json"), JSON.stringify(transactions))
 
+	console.timeEnd("Scraped DBS")
 	return transactions
 }
