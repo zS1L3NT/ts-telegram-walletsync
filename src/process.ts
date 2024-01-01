@@ -1,12 +1,28 @@
 import { Transaction } from "./@types/types"
 
-export default (dbs: Transaction[], wallet: Transaction[]) => {
-	const logs: Record<string, Record<string, Transaction[][]>> = {}
-	const outputs = new Map<string, [Transaction[], Transaction[]]>()
+export default async (dbs: Transaction[], wallet: Transaction[], hide = false) => {
+	const transactionToText = (provider: string, t: Transaction) =>
+		[
+			hidden.includes(t.id!) ? "<s>" : "",
+			`${provider}: `,
+			`<b>${t.amount < 0 ? "-" : ""}$${Math.abs(t.amount)}</b> `,
+			`(<i>${t.description.replaceAll(/\d{4}-\d{4}-\d{4}-\d{4}/g, "****")}</i>, `,
+			`<code>${t.id}</code>)`,
+			hidden.includes(t.id!) ? "</s>" : "",
+		].join("")
 
-	for (let i = 0; i < 35; i++) {
+	console.log("Processing Data")
+	const time = Date.now()
+
+	const hidden = (await Bun.file("data/hidden.json").json()) as string[]
+	const logs: Record<string, Record<string, Transaction[][]>> = {}
+	let differences = ""
+
+	let i = 0
+	// eslint-disable-next-line no-constant-condition
+	while (true) {
 		const today = new Date()
-		today.setDate(today.getDate() - i)
+		today.setDate(today.getDate() - i++)
 
 		const date = today.toLocaleDateString("en-SG", {
 			day: "2-digit",
@@ -20,8 +36,8 @@ export default (dbs: Transaction[], wallet: Transaction[]) => {
 				month: "long",
 				year: "numeric",
 			}) === date
-		const dbsts = dbs.filter(isToday)
-		const walts = wallet.filter(isToday)
+		const dbsts = dbs.filter(isToday).filter(t => (hide ? !hidden.includes(t.id!) : true))
+		const walts = wallet.filter(isToday).filter(t => (hide ? !hidden.includes(t.id!) : true))
 
 		const dbsrm: number[] = []
 		const walrm: number[] = []
@@ -122,28 +138,24 @@ export default (dbs: Transaction[], wallet: Transaction[]) => {
 			}
 		}
 
-		outputs.set(date, [
-			dbsts.filter((_, i) => !dbsrm.includes(i)),
-			walts.filter((_, i) => !walrm.includes(i)),
-		])
+		const dbsd = dbsts.filter((_, i) => !dbsrm.includes(i))
+		const wald = walts.filter((_, i) => !walrm.includes(i))
+		if (dbsd.length || wald.length) {
+			const difference = [
+				"\n",
+				`<b><u>${date}</u></b>`,
+				...dbsd.map(d => transactionToText("DBS", d)),
+				...wald.map(d => transactionToText("Wallet", d)),
+			].join("\n")
+
+			if (differences.length + difference.length > 4096) {
+				break
+			} else {
+				differences += difference
+			}
+		}
 	}
 
-	const transactionToText = (t: Transaction) =>
-		`<b>${t.amount < 0 ? "-" : ""}$${Math.abs(t.amount)}</b> (<i>${t.description.replaceAll(
-			/\d{4}-\d{4}-\d{4}-\d{4}/g,
-			"****",
-		)}</i>)`
-
-	return {
-		differences: [...outputs.entries()]
-			.filter(([, [dbs, wallet]]) => dbs.length || wallet.length)
-			.map(([date, [dbs, wallet]]) =>
-				[
-					`<b><u>${date}</u></b>`,
-					...dbs.map(t => `DBS: ${transactionToText(t)}`),
-					...wallet.map(t => `Wallet: ${transactionToText(t)}`),
-				].join("\n"),
-			)
-			.join("\n\n"),
-	}
+	console.log(`Processed Data in ${Date.now() - time}ms`)
+	return { differences }
 }

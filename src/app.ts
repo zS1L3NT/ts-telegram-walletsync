@@ -12,6 +12,11 @@ if (!(await exists(resolve("data")))) {
 	await mkdir(resolve("data"))
 }
 
+const hidefile = Bun.file("data/hidden.json")
+if (!(await hidefile.exists())) {
+	await Bun.write(hidefile, JSON.stringify([]))
+}
+
 const isAuthenticated = async (username?: string) => {
 	return username === "zS1L3NT"
 }
@@ -23,7 +28,7 @@ bot.onText(/\/start/, async message => {
 	}
 
 	try {
-		const { differences } = process(await dbs(), await wallet())
+		const { differences } = await process(await dbs(), await wallet())
 		await bot.sendMessage(message.from!.id, differences, {
 			parse_mode: "HTML",
 			reply_markup: {
@@ -32,7 +37,11 @@ bot.onText(/\/start/, async message => {
 						{ text: "Refresh DBS", callback_data: "dbs" },
 						{ text: "Refresh Wallet", callback_data: "wallet" },
 					],
-					[{ text: "Refresh Both", callback_data: "both" }],
+					[
+						{ text: "Refresh Both", callback_data: "both" },
+						{ text: "Refresh Cache", callback_data: "cache" },
+					],
+					[{ text: "Show hidden", callback_data: "show" }],
 				],
 			},
 		})
@@ -42,6 +51,50 @@ bot.onText(/\/start/, async message => {
 			parse_mode: "HTML",
 		})
 	}
+})
+
+bot.onText(/\/hide/, async message => {
+	if (!isAuthenticated(message.from?.username)) {
+		bot.sendMessage(message.from!.id, "You aren't authorized to use this bot.")
+		return
+	}
+
+	const ids = message.text?.split(" ").slice(1)
+	if (!ids?.length) {
+		bot.sendMessage(message.from!.id, "Please specify which ids to hide!")
+		return
+	}
+
+	const hidden = (await hidefile.json()) as string[]
+	await Bun.write(hidefile, JSON.stringify([...hidden, ...ids]))
+
+	const [messageId] = await Promise.all([
+		bot.sendMessage(message.from!.id, `Hiding ${ids.length} messages`).then(m => m.message_id),
+		bot.deleteMessage(message.from!.id, message.message_id),
+	])
+	setTimeout(() => bot.deleteMessage(message.from!.id, messageId), 1000)
+})
+
+bot.onText(/\/show/, async message => {
+	if (!isAuthenticated(message.from?.username)) {
+		bot.sendMessage(message.from!.id, "You aren't authorized to use this bot.")
+		return
+	}
+
+	const ids = message.text?.split(" ").slice(1)
+	if (!ids?.length) {
+		bot.sendMessage(message.from!.id, "Please specify which ids to show!")
+		return
+	}
+
+	const hidden = (await hidefile.json()) as string[]
+	await Bun.write(hidefile, JSON.stringify(hidden.filter(h => !ids.includes(h))))
+
+	const [messageId] = await Promise.all([
+		bot.sendMessage(message.from!.id, `Showing ${ids.length} messages`).then(m => m.message_id),
+		bot.deleteMessage(message.from!.id, message.message_id),
+	])
+	setTimeout(() => bot.deleteMessage(message.from!.id, messageId), 1000)
 })
 
 bot.on("callback_query", async message => {
@@ -63,7 +116,7 @@ bot.on("callback_query", async message => {
 			? await wallet()
 			: await walletfile.json()
 
-	const { differences } = process(dbsdata, waldata)
+	const { differences } = await process(dbsdata, waldata, mode !== "show")
 
 	try {
 		await bot.editMessageText(differences, {
@@ -76,7 +129,15 @@ bot.on("callback_query", async message => {
 						{ text: "Refresh DBS", callback_data: "dbs" },
 						{ text: "Refresh Wallet", callback_data: "wallet" },
 					],
-					[{ text: "Refresh Both", callback_data: "both" }],
+					[
+						{ text: "Refresh Both", callback_data: "both" },
+						{ text: "Refresh Cache", callback_data: "cache" },
+					],
+					[
+						mode === "show"
+							? { text: "Hide hidden", callback_data: "hide" }
+							: { text: "Show hidden", callback_data: "show" },
+					],
 				],
 			},
 		})

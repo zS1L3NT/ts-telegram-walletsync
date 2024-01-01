@@ -1,4 +1,5 @@
 import axios from "axios"
+import { createHash } from "crypto"
 import { writeFile } from "fs/promises"
 import { resolve } from "path"
 
@@ -6,7 +7,7 @@ import { Transaction } from "./@types/types"
 
 export default async () => {
 	console.log("Scraping Wallet")
-	console.time("Scraped Wallet")
+	const time = Date.now()
 
 	let sequence = 0
 	const wallet: Record<
@@ -67,17 +68,22 @@ export default async () => {
 		.sort((a, b) => b.date.getTime() - a.date.getTime())
 		.map<Transaction>(r => {
 			const category = r.categoryId ? wallet.category[r.categoryId] : null
-			return {
+			const transaction: Transaction = {
 				date: r.date.getTime(),
 				amount: (r.amount / 100) * (r.type === 0 ? 1 : -1),
 				description: [category ? category.name : "", r.note?.replace("\n", " ")]
 					.filter(Boolean)
 					.join(" | "),
 			}
+
+			return {
+				id: createHash("md5").update(JSON.stringify(transaction)).digest("base64"),
+				...transaction,
+			}
 		})
 
 	await writeFile(resolve("data/wallet.json"), JSON.stringify(transactions))
 
-	console.timeEnd("Scraped Wallet")
+	console.log(`Scraped Wallet in ${Date.now() - time}ms`)
 	return transactions
 }

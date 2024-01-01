@@ -1,3 +1,4 @@
+import { createHash } from "crypto"
 import { readdir, readFile, unlink, writeFile } from "fs/promises"
 import { resolve } from "path"
 import { Builder, By, until } from "selenium-webdriver"
@@ -8,7 +9,7 @@ import { Transaction } from "./@types/types"
 
 export default async () => {
 	console.log("Scraping DBS")
-	console.time("Scraped DBS")
+	const time = Date.now()
 
 	const driver = await new Builder()
 		.forBrowser("chrome")
@@ -104,15 +105,20 @@ export default async () => {
 				  )
 				: new Date(stated_date!)
 
-			return {
+			const transaction: Transaction = {
 				date: date.getTime(),
 				amount: debit!.trim() ? -parseFloat(debit!) : parseFloat(credit!),
 				description: [client_reference, additional_reference].filter(Boolean).join(" | "),
+			}
+
+			return {
+				id: createHash("md5").update(JSON.stringify(transaction)).digest("base64"),
+				...transaction,
 			}
 		})
 
 	await writeFile(resolve("data/dbs.json"), JSON.stringify(transactions))
 
-	console.timeEnd("Scraped DBS")
+	console.log(`Scraped DBS in ${Date.now() - time}ms`)
 	return transactions
 }
