@@ -85,7 +85,7 @@ bot.onText(/\/hide/, async message => {
 		return
 	}
 
-	const hidden = (await hidefile.json()) as string[]
+	const hidden = JSON.parse(await hidefile.text()) as string[]
 	await Bun.write(hidefile, JSON.stringify([...hidden, ...ids]))
 
 	const [messageId] = await Promise.all([
@@ -107,7 +107,7 @@ bot.onText(/\/show/, async message => {
 		return
 	}
 
-	const hidden = (await hidefile.json()) as string[]
+	const hidden = JSON.parse(await hidefile.text()) as string[]
 	await Bun.write(hidefile, JSON.stringify(hidden.filter(h => !ids.includes(h))))
 
 	const [messageId] = await Promise.all([
