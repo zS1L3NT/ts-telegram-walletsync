@@ -27,8 +27,26 @@ bot.onText(/\/start/, async message => {
 		return
 	}
 
+	const messageId = await bot.sendMessage(message.from!.id, "Starting...").then(m => m.message_id)
+
 	try {
-		const { differences } = await process(await dbs(), await wallet())
+		await bot.editMessageText("Scraping DBS...", {
+			chat_id: message.from!.id,
+			message_id: messageId,
+		})
+		const dbsdata = await dbs()
+
+		await bot.editMessageText("Scraping Wallet...", {
+			chat_id: message.from!.id,
+			message_id: messageId,
+		})
+		const waldata = await wallet()
+
+		await bot.editMessageText("Processing Data...", {
+			chat_id: message.from!.id,
+			message_id: messageId,
+		})
+		const { differences } = await process(dbsdata, waldata)
 		await bot.sendMessage(message.from!.id, differences, {
 			parse_mode: "HTML",
 			reply_markup: {
@@ -50,6 +68,8 @@ bot.onText(/\/start/, async message => {
 		bot.sendMessage(message.from!.id, `<b><u>${error.name}</u></b>\n${error.message}`, {
 			parse_mode: "HTML",
 		})
+	} finally {
+		bot.deleteMessage(message.from!.id, messageId)
 	}
 })
 
@@ -103,19 +123,34 @@ bot.on("callback_query", async message => {
 		return
 	}
 
+	const messageId = await bot.sendMessage(message.from.id, "Updating...").then(m => m.message_id)
+
 	const mode = message.data!
 	const dbsfile = Bun.file("data/dbs.json")
 	const walletfile = Bun.file("data/wallet.json")
 
+	await bot.editMessageText("Scraping DBS...", {
+		chat_id: message.from!.id,
+		message_id: messageId,
+	})
 	const dbsdata =
 		["dbs", "both"].includes(mode) || !(await dbsfile.exists())
 			? await dbs()
 			: await dbsfile.json()
+
+	await bot.editMessageText("Scraping Wallet...", {
+		chat_id: message.from!.id,
+		message_id: messageId,
+	})
 	const waldata =
 		["wallet", "both"].includes(mode) || !(await walletfile.exists())
 			? await wallet()
 			: await walletfile.json()
 
+	await bot.editMessageText("Processing Data...", {
+		chat_id: message.from!.id,
+		message_id: messageId,
+	})
 	const { differences } = await process(dbsdata, waldata, mode !== "show")
 
 	try {
@@ -148,5 +183,7 @@ bot.on("callback_query", async message => {
 				parse_mode: "HTML",
 			})
 		}
+	} finally {
+		bot.deleteMessage(message.from.id, messageId)
 	}
 })
